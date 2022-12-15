@@ -55,10 +55,10 @@ class TextToImageConfig(BaseModel):
     steps: int = 50  # number of ddim sampling steps
     ddim_eta: float = 0.0  # ddim eta, eta=0.0 corresponds to deterministic sampling
     n_iter: int = 3  # sample this often
-    H: int = 512  # image height, in pixel space
-    W: int = 512  # image width, in pixel space
-    C: int = 4  # latent channels
-    f: int = 8  # downsampling factor, most often 8 or 16
+    height: int = 512  # image height, in pixel space
+    width: int = 512  # image width, in pixel space
+    latent_channels: int = 4  # latent channels
+    downsampling_factor: int = 8  # downsampling factor, most often 8 or 16
     n_samples: int = (
         3  # how many samples to produce for each given prompt. A.k.a batch size
     )
@@ -111,7 +111,7 @@ def main(config: TextToImageConfig):
     start_code = None
     if config.fixed_code:
         start_code = torch.randn(
-            [config.n_samples, config.C, config.H // config.f, config.W // config.f],
+            [config.n_samples, config.latent_channels, config.height // config.downsampling_factor, config.width // config.downsampling_factor],
             device=device,
         )
 
@@ -126,7 +126,7 @@ def main(config: TextToImageConfig):
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
                 c = model.get_learned_conditioning(prompts)
-                shape = [config.C, config.H // config.f, config.W // config.f]
+                shape = [config.latent_channels, config.height // config.downsampling_factor, config.width // config.downsampling_factor]
                 samples, _ = sampler.sample(
                     S=config.steps,
                     conditioning=c,
