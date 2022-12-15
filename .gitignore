@@ -168,4 +168,14 @@ cython_debug/
 .env
 models/
 scratch/
-__pycache__/
+venv/
+models/
+*.pyc
+*.egg-info
+outputs/
+*.ckpt
+.xkm
+.ipynb_checkpoints/
+src/
+.env
+.vscode/

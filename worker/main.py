@@ -34,7 +34,9 @@ _token = os.environ["HUGGING_FACE_TOKEN"]
 def initialise_models(token):
     # Load the autoencoder model which will be used to decode the latents into image space.
     vae = AutoencoderKL.from_pretrained(
-        "CompVis/stable-diffusion-v1-4", subfolder="vae", use_auth_token=token
+        "CompVis/stable-diffusion-v1-4", 
+        subfolder="vae", 
+        use_auth_token=token,
     )
 
     # Load the tokenizer and text encoder to tokenize and encode the text.
@@ -43,7 +45,9 @@ def initialise_models(token):
 
     # The UNet model for generating the latents.
     unet = UNet2DConditionModel.from_pretrained(
-        "CompVis/stable-diffusion-v1-4", subfolder="unet", use_auth_token=token
+        "CompVis/stable-diffusion-v1-4", 
+        subfolder="unet", 
+        use_auth_token=token,
     )
 
     # The noise scheduler
