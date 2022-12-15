@@ -52,7 +52,7 @@ def load_model_from_config(config, ckpt, verbose=False):
 
 class TextToImageConfig(BaseModel):
     prompt: str
-    output_dir: str
+    output_dir: str = "outputs/"
     steps: int = 50  # number of ddim sampling steps
     ddim_eta: float = 0.0  # ddim eta, eta=0.0 corresponds to deterministic sampling
     n_iter: int = 3  # sample this often
@@ -61,7 +61,7 @@ class TextToImageConfig(BaseModel):
     latent_channels: int = 4  # latent channels
     downsampling_factor: int = 8  # downsampling factor, most often 8 or 16
     n_samples: int = (
-        3  # how many samples to produce for each given prompt. A.k.a batch size
+        1  # how many samples to produce for each given prompt. A.k.a batch size
     )
     n_rows: int = 0  # rows in the grid (default: n_samples)
     scale: float = 9.0  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
@@ -113,10 +113,13 @@ def main(config: TextToImageConfig):
         for n in trange(config.n_iter, desc="Sampling"):
             for prompts in tqdm(data, desc="data"):
                 uc = None
+
                 if config.scale != 1.0:
                     uc = model.get_learned_conditioning(batch_size * [""])
+
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
+
                 c = model.get_learned_conditioning(prompts)
                 shape = [
                     config.latent_channels,
@@ -162,5 +165,6 @@ def main(config: TextToImageConfig):
 
 
 if __name__ == "__main__":
-    config = TextToImageConfig.parse_file("scratch/text_config.json")
+    # config = TextToImageConfig.parse_file("scratch/text_config.json")
+    config = TextToImageConfig(prompt="A giant mechanical frog smoking weed")
     main(config)
