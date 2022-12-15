@@ -1,3 +1,4 @@
+from pathlib import Path
 import argparse
 import os
 from contextlib import nullcontext
@@ -59,14 +60,11 @@ class TextToImageConfig(BaseModel):
     width: int = 512  # image width, in pixel space
     latent_channels: int = 4  # latent channels
     downsampling_factor: int = 8  # downsampling factor, most often 8 or 16
-    n_samples: int = (
-        3  # how many samples to produce for each given prompt. A.k.a batch size
-    )
+    n_samples: int = 3  # how many samples to produce for each given prompt. A.k.a batch size
     n_rows: int = 0  # rows in the grid (default: n_samples)
     scale: float = 9.0  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
-    config: str = "configs/stable-diffusion/v2-inference.yaml"  # path to config which constructs model
+    config: str = "./configs/stable-diffusion/v2-inference.yaml"  # path to config which constructs model
     seed: int = 42  # the seed (for reproducible sampling)
-
     # choices=["full", "autocast"],
     precision: str = autocast  # evaluate at this precision
     repeat: int = 1  # repeat each prompt in file this often
@@ -93,8 +91,8 @@ def main(config: TextToImageConfig):
     else:
         sampler = DDIMSampler(model)
 
-    os.makedirs(config.output_dir, exist_ok=True)
-    outpath = config.output_dir
+    Path(config.output_dir).mkdir(exist_ok=True, parents=True)
+    config.output_dir = config.output_dir
 
     batch_size = config.n_samples
     n_rows = config.n_rows if config.n_rows > 0 else batch_size
@@ -102,11 +100,11 @@ def main(config: TextToImageConfig):
     assert prompt is not None
     data = [batch_size * [prompt]]
 
-    sample_path = os.path.join(outpath, "samples")
+    sample_path = os.path.join(config.output_dir, "samples")
     os.makedirs(sample_path, exist_ok=True)
     sample_count = 0
     base_count = len(os.listdir(sample_path))
-    grid_count = len(os.listdir(outpath)) - 1
+    grid_count = len(os.listdir(config.output_dir)) - 1
 
     start_code = None
     if config.fixed_code:
@@ -161,12 +159,9 @@ def main(config: TextToImageConfig):
         # to image
         grid = 255.0 * rearrange(grid, "c h w -> h w c").cpu().numpy()
         grid = Image.fromarray(grid.astype(np.uint8))
-        grid.save(os.path.join(outpath, f"grid-{grid_count:04}.png"))
+        grid.save(os.path.join(config.output_dir, f"grid-{grid_count:04}.png"))
         grid_count += 1
 
-    print(
-        f"Your samples are ready and waiting for you here: \n{outpath} \n" f" \nEnjoy."
-    )
 
 
 if __name__ == "__main__":
