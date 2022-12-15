@@ -68,14 +68,11 @@ class TextToImageConfig(BaseModel):
     config: str = "./configs/stable-diffusion/v2-inference.yaml"  # path to config which constructs model
     seed: int = 42  # the seed (for reproducible sampling)
     # choices=["full", "autocast"],
-    precision: str = autocast  # evaluate at this precision
+    precision: str = "autocast"  # evaluate at this precision
     repeat: int = 1  # repeat each prompt in file this often
-    ckpt: str = "TODO"  # path to checkpoint of model
+    ckpt: str = "./models/sd/768-v-ema.ckpt"  # path to checkpoint of model
     plms: bool = True  # use plms sampling
     dpm: bool = True  # use DPM (2) sampler
-    fixed_code: bool = (
-        True  # if enabled, uses the same starting code across all samples
-    )
 
 
 def main(config: TextToImageConfig):
@@ -100,7 +97,6 @@ def main(config: TextToImageConfig):
 
     n_rows = config.n_rows if config.n_rows > 0 else batch_size
     prompt = config.prompt
-    assert prompt is not None
     data = [batch_size * [prompt]]
 
     sample_path = Path(config.output_dir) / "samples"
@@ -110,20 +106,8 @@ def main(config: TextToImageConfig):
     base_count = len(os.listdir(sample_path))
     grid_count = len(os.listdir(config.output_dir)) - 1
 
-    start_code = None
-
-    if config.fixed_code:
-        start_code = torch.randn(
-            [
-                config.n_samples,
-                config.latent_channels,
-                config.height // config.downsampling_factor,
-                config.width // config.downsampling_factor,
-            ],
-            device=device,
-        )
-
     precision_scope = autocast if config.precision == "autocast" else nullcontext
+
     with torch.no_grad(), precision_scope("cuda"), model.ema_scope():
         all_samples = list()
         for n in trange(config.n_iter, desc="Sampling"):
@@ -139,6 +123,7 @@ def main(config: TextToImageConfig):
                     config.height // config.downsampling_factor,
                     config.width // config.downsampling_factor,
                 ]
+
                 samples, _ = sampler.sample(
                     S=config.steps,
                     conditioning=c,
@@ -148,7 +133,6 @@ def main(config: TextToImageConfig):
                     unconditional_guidance_scale=config.scale,
                     unconditional_conditioning=uc,
                     eta=config.ddim_eta,
-                    x_T=start_code,
                 )
 
                 x_samples = model.decode_first_stage(samples)
