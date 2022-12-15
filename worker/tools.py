@@ -87,9 +87,9 @@ def put_watermark(img, wm_encoder=None):
 def main(config: TextToImageConfig):
 
     seed_everything(config.seed)
-    config = OmegaConf.load(f"{config.config}")
 
-    model = load_model_from_config(config, f"{config.ckpt}")
+    omega_config = OmegaConf.load(f"{config.config}")
+    model = load_model_from_config(omega_config, f"{config.ckpt}")
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     model = model.to(device)
 
