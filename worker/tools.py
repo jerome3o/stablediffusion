@@ -60,7 +60,9 @@ class TextToImageConfig(BaseModel):
     width: int = 512  # image width, in pixel space
     latent_channels: int = 4  # latent channels
     downsampling_factor: int = 8  # downsampling factor, most often 8 or 16
-    n_samples: int = 3  # how many samples to produce for each given prompt. A.k.a batch size
+    n_samples: int = (
+        3  # how many samples to produce for each given prompt. A.k.a batch size
+    )
     n_rows: int = 0  # rows in the grid (default: n_samples)
     scale: float = 9.0  # unconditional guidance scale: eps = eps(x, empty) + scale * (eps(x, cond) - eps(x, empty))
     config: str = "./configs/stable-diffusion/v2-inference.yaml"  # path to config which constructs model
@@ -95,21 +97,29 @@ def main(config: TextToImageConfig):
     config.output_dir = config.output_dir
 
     batch_size = config.n_samples
+
     n_rows = config.n_rows if config.n_rows > 0 else batch_size
     prompt = config.prompt
     assert prompt is not None
     data = [batch_size * [prompt]]
 
-    sample_path = os.path.join(config.output_dir, "samples")
-    os.makedirs(sample_path, exist_ok=True)
+    sample_path = Path(config.output_dir) / "samples"
+    sample_path.mkdir(exist_ok=True, parents=True)
     sample_count = 0
+
     base_count = len(os.listdir(sample_path))
     grid_count = len(os.listdir(config.output_dir)) - 1
 
     start_code = None
+
     if config.fixed_code:
         start_code = torch.randn(
-            [config.n_samples, config.latent_channels, config.height // config.downsampling_factor, config.width // config.downsampling_factor],
+            [
+                config.n_samples,
+                config.latent_channels,
+                config.height // config.downsampling_factor,
+                config.width // config.downsampling_factor,
+            ],
             device=device,
         )
 
@@ -124,7 +134,11 @@ def main(config: TextToImageConfig):
                 if isinstance(prompts, tuple):
                     prompts = list(prompts)
                 c = model.get_learned_conditioning(prompts)
-                shape = [config.latent_channels, config.height // config.downsampling_factor, config.width // config.downsampling_factor]
+                shape = [
+                    config.latent_channels,
+                    config.height // config.downsampling_factor,
+                    config.width // config.downsampling_factor,
+                ]
                 samples, _ = sampler.sample(
                     S=config.steps,
                     conditioning=c,
@@ -161,7 +175,6 @@ def main(config: TextToImageConfig):
         grid = Image.fromarray(grid.astype(np.uint8))
         grid.save(os.path.join(config.output_dir, f"grid-{grid_count:04}.png"))
         grid_count += 1
-
 
 
 if __name__ == "__main__":
